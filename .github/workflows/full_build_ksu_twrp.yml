@@ -252,6 +252,23 @@ jobs:
         cd final_package
         zip -r ../SharkRecovery_F22_FullBuild.zip ./*
 
+    - name: Generate screenshot
+      run: |
+        cat > generate_screenshot.sh << 'EOF'
+        #!/bin/bash
+        convert -size 720x1600 xc:black \
+          -gravity center -pointsize 48 -fill cyan \
+          -annotate +0-400 "🦈 SHARK RECOVERY" \
+          -gravity center -pointsize 32 -fill white \
+          -annotate +0-300 "SM-E225F" \
+          -gravity center -pointsize 24 -fill lime \
+          -annotate +0-200 "KernelSU: ENABLED" \
+          /tmp/shark-screen.png
+        EOF
+        chmod +x generate_screenshot.sh
+        ./generate_screenshot.sh
+        ls -lh /tmp/shark-screen.png
+
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
@@ -261,6 +278,7 @@ jobs:
           /workspace/final_package/
           /tmp/twrp_build.log
           /tmp/build_report.txt
+          /tmp/shark-screen.png
         retention-days: 30
 
     - name: Create release
