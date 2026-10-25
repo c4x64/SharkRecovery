@@ -58,10 +58,11 @@ jobs:
         sudo apt-get -y install \
           bc bison build-essential ccache curl flex \
           g++-multilib gcc-multilib git gnupg gperf \
-          libncurses-dev libncurses5:i386 libreadline-dev libreadline8:i386 lib32z1-dev \
+          libncurses-dev libncurses6:i386 libreadline-dev libreadline8:i386 lib32z1-dev \
           liblz4-tool libncurses5-dev libssl-dev \
           libxml2-utils lzop m4 make patch texinfo \
-          unzip wget xsltproc zip zlib1g-dev zlib1g:i386
+          unzip wget xsltproc zip zlib1g-dev zlib1g:i386 \
+          libc6-dev-i386
 
     - name: Setup repo
       run: |
