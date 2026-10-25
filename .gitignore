@@ -1,21 +1,46 @@
 # Git ignore for Shark Recovery
+
+# Build outputs
 *.img
 *.zip
 *.tar
 *.tar.gz
 *.ko
+*.o
+*.a
 out/
 build/
+shark-build/
 *.log
-.DS_Store
+*.bin
+*.elf
+
+# KernelSU build artifacts
+KernelSU/src/target/
+KernelSU/*/out/
+KernelSU/*.ko
+
+# Temporary files
 *.tmp
 *.bak
 *.swp
-.kernel/
-*.o
-*.a
-ccache/
-*.bin
+.DS_Store
+
+# IDE
+.idea/
+.vscode/
+*.sublime-project
+*.sublime-workspace
+
+# Ccache
+.ccache/
+
+# Recovery images
 recovery/
 boot/
-*.elf
+cache/
+data/
+
+# Kernel modules
+*.ko
+modules/

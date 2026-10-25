@@ -1,118 +1,80 @@
-# KernelSU for SM-E225F
+# KernelSU Integration for Shark Recovery
 
-KernelSU source and integration for Shark Recovery on Samsung Galaxy F22.
+KernelSU (LKMSU) source and integration for Samsung Galaxy F22 (SM-E225F).
 
 ## Overview
 
-This directory contains KernelSU (LKMSU) source for building KernelSU as a Loadable Kernel Module for the Samsung Galaxy F22.
+This directory contains the complete KernelSU source tree for building KernelSU as a Loadable Kernel Module (LKM) for Shark Recovery on Samsung Galaxy F22.
 
-KernelSU provides root access through kernel-level integration without modifying the boot image.
+## Source
+
+Full KernelSU source tree cloned from:
+https://github.com/tiann/KernelSU
+
+Version: Active development branch
 
 ## Directory Structure
 
 ```
 KernelSU/
-├── README.md          # This file
-├── KSUCONFIG          # KernelSU configuration
-├── config.sh          # Device specific configuration
-├── kernel/           # Kernel source (mt6769t)
-├── src/              # KernelSU source (clone from tiann/KernelSU)
-└── patches/          # Device specific patches
+├── src/              # Full KernelSU source code
+│   ├── kernel/       # Kernel module source
+│   ├── userspace/    # Userspace daemon
+│   ├── manager/      # Android manager app
+│   └── ...
+├── config.sh         # Device build configuration
+├── KSUCONFIG         # KernelSU config
+├── README.md         # This file
+└── .gitignore        # Build outputs
 ```
 
-## Setup
+## Building KernelSU
 
-### 1. Clone KernelSU Source
+### Prerequisites
+- aarch64-linux-gnu toolchain
+- Rust (for userspace builds)
+- Kernel source for mt6769t
+
+### Build Commands
 
 ```bash
-cd /path/to/shark-recovery-f22/KernelSU
-git clone https://github.com/tiann/KernelSU.git src
+cd KernelSU/src
+
+# Build kernel module
+make ARCH=arm64 \
+     CROSS_COMPILE=aarch64-linux-gnu- \
+     KERNEL_DIR=../kernel \
+     -j$(nproc)
+
+# Build userspace daemon
+cd userspace
+cargo build --release
 ```
 
-### 2. Configure Device
+### Integration with TWRP
 
-The `config.sh` file contains device-specific configuration:
+KernelSU is integrated into Shark Recovery via:
+- `device/samsung/f22/ksu_integration.mk`
+- BoardConfig.mk: `TW_INCLUDE_KSU := true`
+- Automatic LKM compilation during recovery build
+
+## Configuration
+
+Device-specific config in `config.sh`:
 - Architecture: arm64
 - Kernel version: 4.19
-- SoC: mt6769t
-- Module output paths
-
-### 3. Build KernelSU
-
-```bash
-cd src
-make -j$(nproc) ARCH=arm64 CROSS_COMPILE=aarch64-linux-gnu-
-```
-
-This builds the LKM `.ko` module.
-
-## Integration with TWRP Build
-
-KernelSU is automatically integrated via the device tree:
-
-1. Copy `KernelSU` to TWRP source: `device/samsung/f22/KernelSU/`
-2. Enable in BoardConfig.mk: `TW_INCLUDE_KSU := true`
-3. Build recovery: `make recoveryimage`
-
-The build system will:
-- Compile KernelSU LKM
-- Bundle it into recovery ramdisk
-- Create installer zip
-
-## Configuration Files
-
-### KSUCONFIG
-KernelSU build configuration for device:
-```
-CONFIG_KSU=y
-CONFIG_KSU_SHOW_BROKEN=y
-CONFIG_KSU_DEBUG=y
-CONFIG_KSU_KSU_SUPPORT=y
-```
-
-### config.sh
-Device build configuration:
-```bash
-export ARCH=arm64
-export CROSS_COMPILE=aarch64-linux-gnu-
-export KERNEL_DEFCONFIG=mt6769t_defconfig
-```
-
-## Building for CI
-
-CI builds automatically:
-1. Clone KernelSU from tiann/KernelSU
-2. Apply device patches from `patches/`
-3. Build LKM module
-4. Package into recovery image
-5. Create installer zip
-
-## Testing
-
-After flashing Shark Recovery:
-1. Boot into recovery
-2. Go to Advanced → KernelSU
-3. Install KernelSU app
-4. Check root access
-
-## Troubleshooting
-
-**Build fails?**
-- Ensure correct toolchain: aarch64-linux-gnu-
-- Check kernel config includes modules
-- Verify defconfig matches device
-
-**Module loads but doesn't work?**
-- Check kernel version matches (4.19.x)
-- Verify module signature
-- Check dmesg for errors
-
-## Credits
-
-- KernelSU: tiann @ github.com/tiann/KernelSU
-- Samsung MediaTek kernel sources
-- Shark Recovery Team
+- Platform: mt6769t
+- Toolchain: aarch64-linux-gnu-
 
 ## License
 
-GPL-2.0
+KernelSU is licensed under GPL-2.0
+
+Original work by tiann
+https://github.com/tiann/KernelSU
+
+## Credits
+
+- KernelSU Team (tiann)
+- Shark Recovery Team
+- MediaTek kernel sources
