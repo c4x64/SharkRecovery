@@ -51,11 +51,11 @@ jobs:
         sudo apt-get update
         sudo apt-get install -y \
           git curl wget bc bison build-essential ccache flex \
-          g++-multilib gcc-multilib lib32z1-dev lib32ncurses5-dev \
-          lib32readline-dev lib32stdc++6 lib32z1 liblz4-tool \
-          libncurses5-dev libssl-dev lzop m4 patch texinfo unzip \
-          zlib1g-dev qemu-system-arm qemu-utils android-tools-adb \
-          imagemagick
+          g++-multilib gcc-multilib libc6-dev-i386 libstdc++6:i386 \
+          libncurses-dev libncurses5:i386 libreadline-dev libreadline8:i386 \
+          libssl-dev lzop m4 patch texinfo unzip \
+          zlib1g-dev zlib1g:i386 liblz4-tool qemu-system-arm \
+          qemu-utils android-tools-adb imagemagick
         mkdir -p ~/bin
         curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
         chmod a+x ~/bin/repo

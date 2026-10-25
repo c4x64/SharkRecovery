@@ -70,8 +70,10 @@ jobs:
           gnupg \
           gperf \
           imagemagick \
-          lib32ncurses5-dev \
-          lib32readline-dev \
+          libncurses-dev \
+          libncurses5:i386 \
+          libreadline-dev \
+          libreadline8:i386 \
           lib32z1-dev \
           liblz4-tool \
           libncurses5 \
@@ -91,6 +93,7 @@ jobs:
           xsltproc \
           zip \
           zlib1g-dev \
+          zlib1g:i386 \
           repo
 
         java -version

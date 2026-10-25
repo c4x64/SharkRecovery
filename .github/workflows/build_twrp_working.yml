@@ -57,10 +57,10 @@ jobs:
           openjdk-8-jdk \
           bc bison build-essential ccache curl flex \
           g++-multilib gcc-multilib git gnupg gperf \
-          lib32ncurses5-dev lib32readline-dev lib32z1-dev \
+          libncurses-dev libncurses5:i386 libreadline-dev libreadline8:i386 lib32z1-dev \
           liblz4-tool libncurses5-dev libssl-dev libxml2-utils \
           lzop m4 make patch texinfo unzip wget \
-          xsltproc zip zlib1g-dev
+          xsltproc zip zlib1g-dev zlib1g:i386
 
         java -version
         echo "JAVA_HOME=$JAVA_HOME" >> $GITHUB_ENV

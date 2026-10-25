@@ -29,9 +29,11 @@ jobs:
           g++-multilib \
           gcc-multilib \
           lib32z1-dev \
-          lib32ncurses5-dev \
-          lib32readline-dev \
-          lib32stdc++6 \
+          libncurses-dev \
+          libncurses5:i386 \
+          libreadline-dev \
+          libreadline8:i386 \
+          libstdc++6:i386 \
           lib32z1 \
           liblz4-tool \
           libncurses5-dev \
@@ -41,6 +43,7 @@ jobs:
           texinfo \
           unzip \
           zlib1g-dev \
+          zlib1g:i386 \
           ccache \
           python3 && \
           rm -rf /var/lib/apt/lists/*
