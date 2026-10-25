@@ -1,4 +1,4 @@
-# Shark Recovery for Samsung Galaxy F22 (SM-E225F)
+# 🦈 Shark Recovery for Samsung Galaxy F22 (SM-E225F)
 
 Custom recovery based on TWRP with KernelSU (LKMSU) integration for Samsung Galaxy F22 (SM-E225F). **Shark Recovery** - a TWRP fork with custom branding and KernelSU support.
 
