@@ -1,0 +1,56 @@
+name: Build in Lightweight VM
+
+on:
+  push:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  build-vm:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Run build in Docker (lightweight VM equivalent)
+      run: |
+        cat << 'EOF' > Dockerfile.build
+        FROM ubuntu:22.04
+        RUN apt-get update && apt-get install -y \
+          git \
+          curl \
+          repo \
+          openjdk-17-jdk \
+          build-essential \
+          bc \
+          bison \
+          flex \
+          g++-multilib \
+          gcc-multilib \
+          lib32z1-dev \
+          lib32ncurses5-dev \
+          lib32readline-dev \
+          lib32stdc++6 \
+          lib32z1 \
+          liblz4-tool \
+          libncurses5-dev \
+          libssl-dev \
+          lzop \
+          m4 \
+          texinfo \
+          unzip \
+          zlib1g-dev \
+          ccache \
+          python3 && \
+          rm -rf /var/lib/apt/lists/*
+        WORKDIR /work
+        CMD ["bash", "-c", "echo 'Docker build environment ready'"]
+        EOF
+
+        docker build -f Dockerfile.build -t shark-build-env .
+        echo "Lightweight VM build environment ready"
+
+    - name: Test build environment
+      run: |
+        docker run --rm shark-build-env bash -c "echo Testing VM environment && uname -a && free -h"

@@ -1,0 +1,21 @@
+# Git ignore for Shark Recovery
+*.img
+*.zip
+*.tar
+*.tar.gz
+*.ko
+out/
+build/
+*.log
+.DS_Store
+*.tmp
+*.bak
+*.swp
+.kernel/
+*.o
+*.a
+ccache/
+*.bin
+recovery/
+boot/
+*.elf

@@ -1,0 +1,85 @@
+name: Build Shark Recovery
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+    inputs:
+      build_type:
+        description: 'Build type'
+        required: false
+        default: 'shark-recovery'
+        type: choice
+        options:
+          - shark-recovery
+          - shark-recovery-ksu
+          - shark-recovery-ksu-lkm
+  schedule:
+    - cron: '0 2 * * *'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Setup Java
+      uses: actions/setup-java@v4
+      with:
+        distribution: 'temurin'
+        java-version: '17'
+
+    - name: Cache ccache
+      uses: actions/cache@v4
+      with:
+        path: ~/.ccache
+        key: ${{ runner.os }}-ccache-shark-${{ github.sha }}
+        restore-keys: |
+          ${{ runner.os }}-ccache-shark-
+
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y git curl wget bc bison build-essential ccache flex g++-multilib gcc-multilib lib32z1-dev lib32ncurses5-dev lib32readline-dev lib32stdc++6 lib32z1 liblz4-tool libncurses5-dev libssl-dev lzop m4 patch texinfo unzip zlib1g-dev
+        mkdir -p ~/bin
+        curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+        chmod a+x ~/bin/repo
+        echo "$HOME/bin" >> $GITHUB_PATH
+
+    - name: Setup Shark Build
+      run: |
+        mkdir -p ~/shark-build
+        cd ~/shark-build
+        repo init -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12 --depth=1
+        repo sync -c -j$(nproc --all) --force-sync --no-clone-bundle --no-tags
+        rm -rf device/samsung/f22
+        mkdir -p device/samsung
+        cp -r $GITHUB_WORKSPACE/device device/samsung/f22
+        mkdir -p device/samsung/f22/KernelSU
+        if [ -d "$GITHUB_WORKSPACE/KernelSU" ]; then
+          cp -r $GITHUB_WORKSPACE/KernelSU/* device/samsung/f22/KernelSU/
+        fi
+        echo "Build environment ready"
+
+    - name: Build Recovery
+      run: |
+        cd ~/shark-build
+        . build/envsetup.sh
+        lunch twrp_f22-eng
+        make -j$(nproc --all) recoveryimage
+
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: shark-recovery-f22
+        path: ~/shark-build/out/target/product/f22/recovery.img
+        retention-days: 30
