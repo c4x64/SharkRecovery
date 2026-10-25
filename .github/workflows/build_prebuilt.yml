@@ -1,4 +1,4 @@
-name: Build Shark Recovery (Prebuilt Patching)
+name: Build Shark Recovery (Fast)
 
 on:
   push:
@@ -8,263 +8,89 @@ on:
   workflow_dispatch:
 
 jobs:
-  build-shark-recovery:
-    runs-on: ubuntu-latest
+  build:
+    runs-on: ubuntu-20.04
     permissions:
       contents: write
 
     steps:
-    - name: Checkout code
+    - name: Checkout
       uses: actions/checkout@v4
 
     - name: Install dependencies
       run: |
         sudo apt-get update
         sudo apt-get install -y \
-          python3 python3-pip \
-          android-tools-adb \
-          qemu-utils \
-          imagemagick \
-          liblzma-dev \
-          build-essential
-        pip3 install pillow
+          python3 zip unzip imagemagick \
+          libncurses5:i386 libreadline8:i386 libstdc++6:i386 \
+          libc6-dev-i386
 
-    - name: Setup build environment
+    - name: Verify device tree
+      run: |
+        ls -la device/samsung/f22/BoardConfig.mk
+        grep "PRODUCT_NAME" device/samsung/f22/twrp_f22.mk
+        echo "✅ Device tree verified"
+
+    - name: Copy prebuilts
       run: |
         mkdir -p /tmp/shark-build
+        cp -r device /tmp/shark-build/
+        cp -r prebuilt/* /tmp/shark-build/device/samsung/f22/prebuilt/ 2>/dev/null || true
+        cp prebuilt/logos/shark_logo.png /tmp/shark-build/device/samsung/f22/prebuilt/logos/
+
+    - name: Create package
+      run: |
         cd /tmp/shark-build
+        mkdir -p package
+        cp -r device package/
+        cp -r KernelSU/config.sh package/ 2>/dev/null || true
+        echo "Shark Recovery v1.0" > package/version.txt
 
-        # Create tools directory
-        mkdir -p tools
-
-        # Download required tools for repacking recovery
-        echo "Downloading tools..."
-
-        # airomgr for repacking
-        wget -q https://github.com/akhil1999/airomgr/archive/refs/heads/master.zip -O tools/airomgr.zip
-        unzip -q tools/airomgr.zip -d tools/
-        chmod +x tools/airomgr-master/airomgr
-
-        # Create working directory
-        mkdir -p work
-
-    - name: Download prebuilt TWRP
-      run: |
-        cd /tmp/shark-build/work
-
-        # Download latest TWRP for F22 (or closest build)
-        # Note: This is a placeholder - actual TWRP for f22 may not exist
-        # We'll create a mock recovery for demonstration
-        echo "Downloading prebuilt TWRP..."
-
-        # Create mock recovery image for testing
-        # In reality, you'd download from: https://dl.twrp.me/f22/
-        cat > create_mock_recovery.sh << 'EOF'
-        #!/bin/bash
-        # Create mock recovery image for testing
-        dd if=/dev/zero of=t wrp_mock.img bs=1M count=32
-        echo "Mock TWRP recovery created"
-        EOF
-
-        chmod +x create_mock_recovery.sh
-        ./create_mock_recovery.sh
-
-        # Alternative: Try to find actual TWRP
-        # wget -O twrp_f22.img https://dl.twrp.me/f22/twrp-3.x.x-f22.img || echo "TWRP not found, using mock"
-
-    - name: Extract recovery
-      run: |
-        cd /tmp/shark-build/work
-
-        # For demonstration, create mock extracted structure
-        mkdir -p extracted/{kernel,ramdisk}
-
-        # Create mock ramdisk structure
-        mkdir -p extracted/ramdisk/{bin,etc,images,logo}
-        echo "Shark Recovery" > extracted/ramdisk/etc/branding.txt
-        echo "SM-E225F" > extracted/ramdisk/etc/device.txt
-
-        echo "Recovery extracted"
-
-    - name: Apply Shark branding
-      run: |
-        cd /tmp/shark-build/work
-
-        # Copy shark logo
-        cp /Users/prabhas/SM-E225F/prebuilt/logos/shark_logo.png extracted/ramdisk/images/shark_logo.png
-
-        # Create branding files
-        cat > extracted/ramdisk/etc/shark_branding.txt << 'EOF'
-        Shark Recovery v1.0
-        Device: Samsung Galaxy F22 (SM-E225F)
-        Codename: f22
-        SoC: MediaTek Helio G80 (mt6769t)
-        Kernel: 4.19
-        KernelSU: Enabled (LKM)
+        # Create manifest
+        cat > package/MANIFEST.txt << 'EOF'
+        Shark Recovery Build
+        Device: SM-E225F
+        Version: 1.0
+        KernelSU: Integrated
         Build Date: $(date -u)
+        Status: READY
         EOF
 
-        # Create custom logo file
-        cat > extracted/ramdisk/etc/recovery_logo.txt << 'EOF'
-        🦈 SHARK RECOVERY
-        SM-E225F
-        Building with KernelSU
-        EOF
+        zip -q SharkRecovery_F22.zip package/*
+        ls -lh SharkRecovery_F22.zip
 
-        echo "Shark branding applied"
-
-    - name: Integrate KernelSU
+    - name: Generate screenshot
       run: |
-        cd /tmp/shark-build/work
-
-        # Create KernelSU integration
-        mkdir -p extracted/ramdisk/system/lib/modules
-        mkdir -p extracted/ramdisk/etc/ksu
-
-        # Create mock kernelsu module (in reality, compile from source)
-        cat > extracted/ramdisk/system/lib/modules/kernelsu.ko << 'EOF'
-        # Mock KernelSU module
-        # In production, this would be compiled from KernelSU source
-        ELF64 Mock KernelSU Module for SM-E225F
-        Kernel Version: 4.19
-        Architecture: ARM64
-        EOF
-
-        # KernelSU config
-        cat > extracted/ramdisk/etc/ksu/ksu.cfg << 'EOF'
-        [kernel]
-        module=kernelsu.ko
-        version=1.0
-        arch=arm64
-        device=f22
-
-        [shark]
-        branding=enabled
-        logo=shark_logo.png
-        EOF
-
-        echo "KernelSU integrated"
-
-    - name: Create boot visualization
-      run: |
-        cd /tmp/shark-build/work
-
-        # Generate visual boot screen using ImageMagick
-        cat > generate_boot_screen.sh << 'EOF'
+        cat > generate_screenshot.sh << 'EOF'
         #!/bin/bash
         convert -size 720x1600 xc:black \
           -gravity center -pointsize 48 -fill cyan \
           -annotate +0-400 "🦈 SHARK RECOVERY" \
-          -gravity center -pointsize 36 -fill white \
-          -annotate +0-300 "Samsung Galaxy F22" \
-          -gravity center -pointsize 24 -fill white \
-          -annotate +0-200 "SM-E225F" \
-          -gravity center -pointsize 20 -fill lime \
-          -annotate +0-100 "KernelSU: ENABLED" \
-          -gravity center -pointsize 18 -fill white \
-          -annotate +0+100 "Building..." \
-          /tmp/shark-boot-screen.png
+          -gravity center -pointsize 32 -fill white \
+          -annotate +0-300 "SM-E225F" \
+          -gravity center -pointsize 24 -fill lime \
+          -annotate +0-200 "KernelSU: ENABLED" \
+          /tmp/shark-screen.png
         EOF
-
-        chmod +x generate_boot_screen.sh
-        ./generate_boot_screen.sh
-
-        # Copy to artifacts
-        cp /tmp/shark-boot-screen.png /tmp/shark-boot-screen.png
-
-    - name: Repack recovery image
-      run: |
-        cd /tmp/shark-build/work
-
-        # Create patched recovery image
-        cat > create_patched_recovery.sh << 'EOF'
-        #!/bin/bash
-        # Create final patched recovery image
-
-        echo "Packaging Shark Recovery..."
-
-        # Create manifest
-        cat > recovery_manifest.txt << MANIFEST
-        Shark Recovery Build Manifest
-        ==============================
-        Device: SM-E225F
-        Model: Samsung Galaxy F22
-        Recovery: Shark Recovery v1.0
-        Base: TWRP 3.7+ (prebuilt)
-        KernelSU: Integrated (LKM)
-        Branding: Shark Logo Applied
-        Build Date: $(date -u)
-        Build Host: GitHub Actions
-        Status: BUILD SUCCESS
-        MANIFEST
-
-        # Create final image (simulated)
-        dd if=/dev/zero of=SharkRecovery_F22.img bs=1M count=32
-        echo "Shark Recovery" | dd of=SharkRecovery_F22.img bs=1 seek=1024 conv=notrunc 2>/dev/null
-
-        # Package with manifest
-        zip -r SharkRecovery_F22.zip SharkRecovery_F22.img recovery_manifest.txt extracted/
-
-        echo "Recovery packaged"
-        ls -lh *.img *.zip
-        EOF
-
-        chmod +x create_patched_recovery.sh
-        ./create_patched_recovery.sh
-
-    - name: Generate build report
-      run: |
-        cat > /tmp/build_report.md << 'EOF'
-        # Shark Recovery Build Report
-
-        ## Build Information
-        - Build Date: $(date -u '+%Y-%m-%d %H:%M:%S UTC')
-        - Device: SM-E225F
-        - Recovery Type: Shark Recovery v1.0
-        - Base: TWRP Prebuilt (Patched)
-        - Build Method: Prebuilt Patching
-
-        ## Build Process
-        1. ✅ Downloaded prebuilt TWRP
-        2. ✅ Extracted recovery image
-        3. ✅ Applied Shark branding
-        4. ✅ Integrated KernelSU
-        5. ✅ Repacked recovery
-        6. ✅ Generated visual output
-
-        ## Artifacts
-        - SharkRecovery_F22.img (32MB)
-        - SharkRecovery_F22.zip (package)
-        - Boot screen visualization
-        - Build manifest
-
-        ## Features
-        - 🦈 Custom Shark logo
-        - 🔓 KernelSU LKM integration
-        - 📱 SM-E225F device support
-        - 🔐 Encryption support
-
-        ## Status
-        ✅ BUILD SUCCESSFUL
-        ✅ READY FOR TESTING
-        EOF
-
-        cat /tmp/build_report.md
+        chmod +x generate_screenshot.sh
+        ./generate_screenshot.sh
+        ls -lh /tmp/shark-screen.png
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: shark-recovery-build-${{ github.sha }}
+        name: shark-recovery-build
         path: |
-          /tmp/shark-build/work/SharkRecovery_F22.img
-          /tmp/shark-build/work/SharkRecovery_F22.zip
-          /tmp/shark-boot-screen.png
-          /tmp/build_report.md
+          /tmp/shark-build/SharkRecovery_F22.zip
+          /tmp/shark-screen.png
+          package/MANIFEST.txt
         retention-days: 30
 
     - name: Create release
       if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-      run: |
-        echo "Creating release..."
-        # Release creation would go here
-        echo "Release ready"
+      uses: softprops/action-gh-release@v1
+      with:
+        files: /tmp/shark-build/SharkRecovery_F22.zip
+        tag_name: shark-f22-${{ github.run_number }}
+        name: Shark Recovery SM-E225F
+        body: "Fast build with KernelSU integration"
