@@ -20,6 +20,8 @@ jobs:
     - name: Install dependencies
       run: |
         sudo apt-get update
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
         sudo apt-get install -y \
           python3 zip unzip imagemagick \
           libncurses6:i386 libreadline8:i386 libstdc++6:i386 \

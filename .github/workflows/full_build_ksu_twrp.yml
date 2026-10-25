@@ -55,6 +55,8 @@ jobs:
 
     - name: Setup build dependencies
       run: |
+        sudo dpkg --add-architecture i386
+        sudo apt-get update
         sudo apt-get -y install \
           bc bison build-essential ccache curl flex \
           g++-multilib gcc-multilib git gnupg gperf \
