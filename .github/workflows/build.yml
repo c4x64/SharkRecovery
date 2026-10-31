@@ -1,0 +1,40 @@
+name: build
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Install aarch64 toolchain
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends \
+            build-essential git gcc-aarch64-linux-gnu binutils-aarch64-linux-gnu
+
+      - name: Build KPM
+        run: ./build.sh
+
+      - name: Inspect artifact
+        run: |
+          file samsung-gsi-fix.kpm
+          aarch64-linux-gnu-readelf -S samsung-gsi-fix.kpm | grep -E '\.kpm\.(info|init|ctl0|exit)'
+          aarch64-linux-gnu-readelf -h samsung-gsi-fix.kpm | grep -E 'Type:|Machine:'
+
+      - name: Upload KPM
+        uses: actions/upload-artifact@v4
+        with:
+          name: samsung-gsi-fix-kpm
+          path: samsung-gsi-fix.kpm
+          if-no-files-found: error
